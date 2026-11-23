@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Architecture : ADR-012 Database for the promotions service</title>
+<meta name="confluence-space-key" content="ARCH">
+<meta name="confluence-page-id" content="sample-adr-012">
+</head>
+<body>
+<div id="breadcrumbs">Architecture / Decision Records / ADR-012</div>
+<div id="main-content" class="wiki-content">
+
+<h1>ADR-012: Database for the promotions service</h1>
+<p><strong>Status:</strong> Accepted &middot; <strong>Owner:</strong> Retail Domain Architecture &middot; <strong>Last reviewed:</strong> 2026-10-28</p>
+
+<h2>Context</h2>
+<p>The promotions service manages weekly offers, coupons and loyalty campaigns for roughly 3,000 stores. A promotion has a header (validity, channels, regions), a variable list of articles with prices, display texts per language and per channel, and store-specific overrides.</p>
+<p>Today promotions are stored across nine relational tables. Reading one promotion for the app requires five joins, and every new channel (app, e-receipt, digital signage) has added columns or tables. The team spends most change requests on schema migrations instead of features.</p>
+
+<h2>Decision drivers</h2>
+<ul>
+<li>Read latency below 20 ms (p95) for "promotion by id" and "active promotions for store X", the two hottest access patterns.</li>
+<li>Frequent schema evolution: new channels and attributes roughly every quarter.</li>
+<li>Peak load on Monday mornings when the new promotion week goes live (about 40x normal reads).</li>
+<li>Full-text and semantic search over promotion texts for the internal planning tool.</li>
+<li>Operational simplicity: the team has two engineers on call and no dedicated DBA.</li>
+</ul>
+
+<h2>Considered options</h2>
+<h3>Option A: Keep PostgreSQL, normalize further</h3>
+<p>Pros: team knows it well, strong consistency across tables, existing reporting jobs keep working.</p>
+<p>Cons: joins grow with every channel; JSONB columns already used as a workaround for channel texts; search needs a separate engine or extension.</p>
+<h3>Option B: MongoDB Atlas, one document per promotion</h3>
+<p>Pros: the promotion is read and written as one document, matching how the app consumes it; new attributes need no migration; Atlas Search and Vector Search run on the same data; managed scaling for the Monday peak.</p>
+<p>Cons: reporting jobs need to move to change streams or Atlas SQL; team needs enablement on document modelling.</p>
+
+<h2>Decision</h2>
+<p>We choose <strong>Option B, MongoDB Atlas</strong>. Each promotion is one document with embedded articles, channel texts and store overrides. Store overrides above 200 entries are moved to a separate collection to keep documents bounded.</p>
+
+<h2>Consequences</h2>
+<ul>
+<li>Reporting moves to an analytics node plus Atlas SQL within two sprints.</li>
+<li>A JSON schema validator enforces required fields (validity, regions, at least one article).</li>
+<li>Search for the planning tool uses Atlas Search; no separate search cluster.</li>
+<li>Revisit if access patterns shift to many-to-many reporting across promotions, articles and stores.</li>
+</ul>
+
+<h2>Decision checklist: document vs. relational</h2>
+<table>
+<tr><th>Question</th><th>Points to MongoDB</th><th>Points to PostgreSQL</th></tr>
+<tr><td>How is the data read?</td><td>As a whole aggregate (one promotion, one order)</td><td>Ad-hoc across many entities</td></tr>
+<tr><td>How often does the schema change?</td><td>Quarterly or more often</td><td>Rarely</td></tr>
+<tr><td>Do you need search or vector search?</td><td>Yes, on the same data</td><td>No, or a separate engine is acceptable</td></tr>
+<tr><td>How many access patterns?</td><td>A few hot ones known upfront</td><td>Many unknown, reporting-heavy</td></tr>
+<tr><td>Transactions across entities?</td><td>Mostly within one aggregate</td><td>Frequently across many tables</td></tr>
+</table>
+
+</div>
+</body>
+</html>

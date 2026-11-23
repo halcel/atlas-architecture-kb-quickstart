@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Architecture : Guideline - Caching in customer-facing services</title>
+<meta name="confluence-space-key" content="ARCH">
+<meta name="confluence-page-id" content="sample-guideline-caching">
+</head>
+<body>
+<div id="breadcrumbs">Architecture / Guidelines / Caching</div>
+<div id="main-content" class="wiki-content">
+
+<h1>Guideline: Caching in customer-facing services</h1>
+<p><strong>Status:</strong> Active &middot; <strong>Owner:</strong> Platform Architecture &middot; <strong>Last reviewed:</strong> 2026-09-15</p>
+
+<h2>Purpose</h2>
+<p>Customer-facing services (app backend, web shop, e-receipt) must stay fast during peaks without each team inventing its own caching. This guideline defines when to cache, where, and how to invalidate.</p>
+
+<h2>Two-tier caching</h2>
+<p>Use a small, bounded in-process cache (L1) for hot, rarely changing data such as store master data and feature flags. Size it by entry count, not by "whatever fits": a pod must never grow beyond its memory request because of cache growth.</p>
+<p>Use a shared cache (L2) for data that is expensive to compute and shared across pods, for example precomputed rankings or personalised content. MongoDB Atlas is the approved L2 when the cached data is also queried by attributes; a pure key-value store is acceptable only for opaque blobs.</p>
+
+<h2>Invalidation</h2>
+<ul>
+<li>Prefer event-based invalidation (message queue or change streams) over short TTLs.</li>
+<li>Every cache entry needs a TTL as a safety net; use a TTL index for L2 entries in MongoDB.</li>
+<li>Never cache user-specific data in L1: it grows with the number of users and causes out-of-memory restarts.</li>
+</ul>
+
+<h2>Sizing and load tests</h2>
+<p>Before go-live, run a load test at 2x the expected peak and record cache hit rate, pod memory and L2 latency. Share the results with the platform team for cluster sizing. Target an L1 hit rate above 80% and L2 p95 latency below 10 ms.</p>
+
+<h2>Anti-patterns</h2>
+<ul>
+<li>Unbounded in-memory maps keyed by user or session.</li>
+<li>Sticky sessions as a substitute for a shared cache.</li>
+<li>Running two databases for the same data "because the reference architecture does".</li>
+</ul>
+
+</div>
+</body>
+</html>

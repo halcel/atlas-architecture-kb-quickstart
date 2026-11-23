@@ -1,0 +1,32 @@
+# Human-readable app slug used by Agent Engine tooling.
+name: architecture-kb-agent
+entrypoint: architecture_kb_agent.main:app
+framework: langgraph
+features:
+    durable_workflow: true
+    memory: false
+sandboxes:
+    agent:
+        secrets: ["*"]
+        tools: []
+        network:
+            egress_mode: deny_all
+    tool:
+        secrets: ["*"]
+        network:
+            egress_mode: allow_list
+            egress:
+                - fqdn: api.anthropic.com
+                  ports: [443]
+        tools:
+            - invoke_llm
+            - search_knowledge_base
+            - list_pages
+version: 0.1.0
+description: Answers architecture questions from Confluence pages stored in MongoDB Atlas, with sources.
+agent_card:
+    summary: Architecture assistant grounded in the team's Confluence knowledge base.
+    capabilities:
+        - Semantic search over Confluence chunks (Atlas Vector Search, automated Voyage AI embeddings)
+        - Answers with page and section citations
+        - Lists which pages are in the knowledge base
