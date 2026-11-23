@@ -73,12 +73,22 @@ agentengine invoke --stream --session s1 "Welche Kriterien sprechen für MongoDB
 ```
 
 `deploy --auto` asks interactively for anything missing (workspace, secrets, Atlas link). The agent has two tools,
-`search_knowledge_base` and `list_pages`, in `src/architecture_kb_agent/`. Prefer to iterate locally first?
-`agentengine dev up` runs the same agent in Docker with a Playground at http://localhost:3000.
+`search_knowledge_base` and `list_pages`, in `src/architecture_kb_agent/`.
 
-Docs: [Get started](https://www.mongodb.com/docs/agentengine/get-started/) ·
-[`agentengine deploy`](https://www.mongodb.com/docs/agentengine/cli/agentengine_deploy/) ·
-[Examples](https://github.com/mongodb/agent-engine-examples)
+### What is in this repo, and what Agent Engine provides
+
+This repo contains the agent: code (`main.py`, tools in `knowledge_base.py`), config (`agent.yaml`: tools, sandboxes,
+egress) and dependencies. The platform pieces come from Agent Engine and are not in the repo:
+
+| Piece | What it does | Docs |
+|---|---|---|
+| **`agentengine` CLI** | Scaffolds, validates, runs and deploys agents | [Download](https://agentengine.mongodb.com/download-cli) · [Install and sign in](https://www.mongodb.com/docs/agentengine/build/install-authenticate/) · [CLI reference](https://www.mongodb.com/docs/agentengine/cli/agentengine/) |
+| **Local Docker stack** | `agentengine dev up` generates and starts Orchestration Engine, agent and tool sandboxes, and a Playground at http://localhost:3000 (Docker Desktop required). Good for iterating before you deploy. | [`agentengine dev up`](https://www.mongodb.com/docs/agentengine/cli/agentengine_dev_up/) · [`agentengine dev`](https://www.mongodb.com/docs/agentengine/cli/agentengine_dev/) |
+| **Cloud runtime in Atlas** | `agentengine deploy` builds the agent and runs it in your Atlas project; `atlas setup` links the cluster; `invoke` calls it | [`deploy`](https://www.mongodb.com/docs/agentengine/cli/agentengine_deploy/) · [`atlas setup`](https://www.mongodb.com/docs/agentengine/cli/agentengine_atlas_setup/) · [`invoke`](https://www.mongodb.com/docs/agentengine/cli/agentengine_invoke/) |
+
+Start here: [Atlas Agent Engine docs](https://www.mongodb.com/docs/agentengine/) ·
+[Get started tutorial](https://www.mongodb.com/docs/agentengine/get-started/) ·
+[More example agents](https://github.com/mongodb/agent-engine-examples)
 
 ## Optional: the same knowledge base from your IDE (MongoDB MCP Server)
 
