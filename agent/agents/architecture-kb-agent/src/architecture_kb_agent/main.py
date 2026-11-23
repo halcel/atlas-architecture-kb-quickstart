@@ -3,20 +3,18 @@
 from __future__ import annotations
 
 import json
-import os
 from typing import Annotated, Literal, TypedDict
 
 from dotenv import load_dotenv
-from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import AnyMessage, SystemMessage
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import ToolNode
-from pydantic import SecretStr
 from agent_engine_sdk_langgraph import App
 
 from architecture_kb_agent import knowledge_base as kb
+from architecture_kb_agent.llm import build_llm
 
 load_dotenv()
 
@@ -48,11 +46,7 @@ class AgentState(TypedDict):
 
 @app.entrypoint
 def build_agent() -> CompiledStateGraph:
-    llm = app.llm(ChatAnthropic(
-        model_name=os.environ.get("LLM_MODEL", "claude-opus-5-5"),
-        api_key=SecretStr(os.environ["LLM_API_KEY"]),
-        max_tokens_to_sample=4000,
-    ))
+    llm = app.llm(build_llm())
     llm_with_tools = llm.bind_tools(app.get_tool_schemas())
 
     def agent_node(state: AgentState) -> dict:
